@@ -1,0 +1,18 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Model files (too large for GitHub)
+models/*.pkl
+
+# Kaggle data
+data/kaggle/
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode/

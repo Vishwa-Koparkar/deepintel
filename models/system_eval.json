@@ -1,0 +1,62 @@
+{
+  "accuracy": 87.59,
+  "false_negative_rate": 6.14,
+  "false_positive_rate": 13.9,
+  "total_urls": 9350,
+  "elapsed_seconds": 40.5,
+  "classes": [
+    "benign",
+    "malware",
+    "phishing"
+  ],
+  "report": {
+    "benign": {
+      "precision": 0.8893939393939394,
+      "recall": 0.8609562921677911,
+      "f1-score": 0.8749441049336711,
+      "support": 3409.0
+    },
+    "malware": {
+      "precision": 0.8860192837465565,
+      "recall": 0.8651647612642905,
+      "f1-score": 0.8754678462061926,
+      "support": 2974.0
+    },
+    "phishing": {
+      "precision": 0.852511125238398,
+      "recall": 0.9039433771486349,
+      "f1-score": 0.8774742352363815,
+      "support": 2967.0
+    },
+    "accuracy": 0.8759358288770054,
+    "macro avg": {
+      "precision": 0.8759747827929646,
+      "recall": 0.8766881435269056,
+      "f1-score": 0.875962062125415,
+      "support": 9350.0
+    },
+    "weighted avg": {
+      "precision": 0.8766166628704305,
+      "recall": 0.8759358288770054,
+      "f1-score": 0.8759135705114914,
+      "support": 9350.0
+    }
+  },
+  "cm": [
+    [
+      2935,
+      163,
+      311
+    ],
+    [
+      248,
+      2573,
+      153
+    ],
+    [
+      117,
+      168,
+      2682
+    ]
+  ]
+}
