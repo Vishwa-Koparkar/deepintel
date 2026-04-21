@@ -24,6 +24,7 @@ os.makedirs("models", exist_ok=True)
 train = pd.read_csv(TRAIN_FILE)
 val   = pd.read_csv(VAL_FILE)
 
+# split data into x and y [x = features, y = labels]
 X_train = train[FEATURE_COLS]
 X_val   = val[FEATURE_COLS]
 

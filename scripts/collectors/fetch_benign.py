@@ -6,6 +6,7 @@ import time
 OUTPUT_FILE = "data/benign.csv"
 TARGET_COUNT = 5000
 
+# Fetch top domains from Majestic Million and save as benign URLs
 def fetch_benign_urls():
     print("Fetching Majestic Million top domains...")
 
@@ -13,6 +14,7 @@ def fetch_benign_urls():
     response = requests.get(url, stream=True, timeout=60)
     response.raise_for_status()
 
+    #read data line by line to avoid loading the entire file into memory
     lines = []
     for chunk in response.iter_lines():
         if chunk:
@@ -24,7 +26,10 @@ def fetch_benign_urls():
     from io import StringIO
     import csv
 
+    # Convert each row into a dictionary
     reader = csv.DictReader(lines)
+
+    #Extract domains and convert to URLs
     urls = []
     for row in reader:
         domain = row.get("Domain", "").strip().lower()
@@ -36,6 +41,7 @@ def fetch_benign_urls():
 
     print(f"Collected {len(urls)} benign URLs")
 
+    #create dataframe and save to CSV
     df = pd.DataFrame({"url": urls, "label": "benign", "source": "majestic_million"})
     df.drop_duplicates(subset="url", inplace=True)
     df.to_csv(OUTPUT_FILE, index=False)

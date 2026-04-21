@@ -32,6 +32,7 @@ SUSPICIOUS_TLDS = {
 
 SAFE_TLDS = {".com", ".org", ".edu", ".gov", ".net", ".io", ".co"}
 
+# Measures randomness of a string (higher means more random, which can indicate suspicious domains)
 def entropy(s):
     if not s:
         return 0.0
@@ -43,6 +44,7 @@ def entropy(s):
 
 def extract_features(url):
     try:
+        #Splits URL into: domain → example.com; path → /login; query → id=123
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
         path = parsed.path.lower()
@@ -62,7 +64,7 @@ def extract_features(url):
         # 2. Path length
         features["path_length"] = len(path)
 
-        # 3. Number of subdomains
+        # 3. Number of subdomains [many subdomains can indicate suspiciousness]
         features["num_subdomains"] = max(0, len(parts) - 2)
 
         # 4. Number of digits in URL
@@ -71,15 +73,15 @@ def extract_features(url):
         # 5. Number of hyphens in domain
         features["num_hyphens_domain"] = domain_clean.count("-")
 
-        # 6. Is HTTPS
+        # 6. Is HTTPS [slightly safer (but not guaranteed)]
         features["is_https"] = int(parsed.scheme == "https")
 
-        # 7. Is domain an IP address
+        # 7. Is domain an IP address [IP address instead of domain can be a red flag]
         features["is_domain_ip"] = int(bool(re.match(
             r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", domain_clean
         )))
 
-        # 8. Has URL shortener
+        # 8. Has URL shortener [Shortened links are often used to hide malicious destinations]
         features["has_shortener"] = int(domain_clean in SHORTENERS)
 
         # 9. Has suspicious keywords
@@ -122,6 +124,7 @@ def extract_features(url):
 
         return features
 
+    # if URL parsing fails
     except Exception:
         return None
 
@@ -144,6 +147,7 @@ def main():
                 "has_double_slash", "has_encoded_chars", "num_query_params",
                 "domain_entropy", "tld_category"
             ]}
+        # Add metadata back to the features
         feats["url"] = row["url"]
         feats["label"] = row["label"]
         feats["source"] = row["source"]

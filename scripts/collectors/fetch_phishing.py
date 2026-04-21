@@ -8,6 +8,7 @@ TARGET_COUNT = 5000
 
 def fetch_from_openphish():
     print("Fetching from OpenPhish...")
+    #Downloads a plain text feed of phishing URLs
     url = "https://openphish.com/feed.txt"
     response = requests.get(url, timeout=30)
     response.raise_for_status()

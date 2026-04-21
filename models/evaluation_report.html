@@ -3,51 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <title>DeepIntel — Model Evaluation Report</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #1a1a2e; }
-  header { background: #1a1a2e; color: white; padding: 28px 40px; }
-  header h1 { font-size: 24px; font-weight: 600; }
-  header p  { font-size: 14px; color: #aab; margin-top: 4px; }
-  .container { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
-  .winner-banner { background: #0f6e56; color: white; border-radius: 10px; padding: 20px 28px; margin-bottom: 32px; display: flex; align-items: center; gap: 16px; }
-  .winner-banner .icon { font-size: 32px; }
-  .winner-banner h2 { font-size: 20px; font-weight: 600; }
-  .winner-banner p  { font-size: 14px; opacity: 0.85; margin-top: 4px; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
-  .card { background: white; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-  .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #1a1a2e; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-  .acc-badge { display: inline-block; font-size: 36px; font-weight: 700; color: #0f6e56; }
-  .acc-label { font-size: 13px; color: #666; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: #f5f7fa; padding: 8px 12px; text-align: left; font-weight: 600; color: #555; }
-  td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
-  tr:last-child td { border-bottom: none; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-  .badge-green { background: #e1f5ee; color: #0f6e56; }
-  .badge-blue  { background: #e6f1fb; color: #185fa5; }
-  .badge-amber { background: #faeeda; color: #854f0b; }
-  .chart-wrap { position: relative; height: 240px; }
-  .section-title { font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: #1a1a2e; }
-  .full-card { background: white; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 24px; }
-  .cm-table td { text-align: center; width: 80px; font-weight: 600; }
-  .cm-table .cm-high { background: #0f6e56; color: white; border-radius: 4px; }
-  .cm-table .cm-mid  { background: #9fe1cb; color: #085041; border-radius: 4px; }
-  .cm-table .cm-low  { background: #f5f7fa; color: #555; border-radius: 4px; }
-  .reasoning { background: #f5f7fa; border-left: 4px solid #0f6e56; padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.7; }
-  .reasoning strong { color: #0f6e56; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:#f0f4f8; color:#1a2332; }
+  header { background:#1a4fa8; color:white; padding:24px 40px; }
+  header h1 { font-size:22px; font-weight:700; }
+  header p  { font-size:13px; opacity:0.8; margin-top:4px; font-family:'JetBrains Mono',monospace; }
+  .container { max-width:1100px; margin:28px auto; padding:0 24px; }
+  .winner { background:#0a7c5c; color:white; border-radius:12px; padding:18px 24px; margin-bottom:24px; display:flex; align-items:center; gap:14px; }
+  .winner h2 { font-size:18px; font-weight:700; }
+  .winner p  { font-size:13px; opacity:0.85; margin-top:3px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+  .card { background:white; border:1px solid #d0dbe8; border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+  .card h3 { font-size:14px; font-weight:700; margin-bottom:14px; color:#1a2332; border-bottom:2px solid #eef2f7; padding-bottom:10px; }
+  .acc { font-size:38px; font-weight:700; color:#1a4fa8; font-family:'DM Serif Display',serif; }
+  .acc-label { font-size:12px; color:#7a90a8; margin-top:3px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:#f0f4f8; padding:7px 10px; text-align:left; font-weight:600; color:#555; }
+  td { padding:7px 10px; border-bottom:1px solid #eef2f7; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+  .badge-g { background:#e8f5f0; color:#0a7c5c; }
+  .badge-b { background:#e3f2fd; color:#1a6fa8; }
+  .badge-a { background:#fff3e0; color:#b85c00; }
+  .chart-wrap { position:relative; height:220px; }
+  .sec-title { font-size:16px; font-weight:700; margin:24px 0 12px; }
+  .full { background:white; border:1px solid #d0dbe8; border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(0,0,0,0.04); margin-bottom:16px; }
+  .cm td { text-align:center; width:80px; font-weight:600; }
+  .cm .hi { background:#0a7c5c; color:white; border-radius:4px; }
+  .cm .md { background:#9fe1cb; color:#085041; border-radius:4px; }
+  .cm .lo { background:#f8fafc; color:#aaa; border-radius:4px; }
+  .note { background:#f0f4f8; border-left:3px solid #1a4fa8; border-radius:0 8px 8px 0; padding:14px 18px; font-size:13px; line-height:1.7; }
+  .note strong { color:#1a4fa8; }
 </style>
 </head>
 <body>
 <header>
   <h1>DeepIntel — Model Evaluation Report</h1>
-  <p>Layer 1: ML Model Selection &nbsp;|&nbsp; Validation Set Results</p>
+  <p>Layer 1: ML Model Selection | 20 Features | 60,000 URLs | Validation Set</p>
 </header>
 <div class="container">
 
-  <div class="winner-banner">
-    <div class="icon">🏆</div>
+  <div class="winner">
+    <div style="font-size:28px">&#x1F3C6;</div>
     <div>
       <h2>Selected Model: XGBoost</h2>
       <p>Chosen based on validation accuracy and critical threat recall. Saved as models/best_model.pkl</p>
@@ -57,67 +56,61 @@
   <div class="grid-2">
     <div class="card">
       <h3>Random Forest</h3>
-      <div class="acc-badge">85.23%</div>
-      <div class="acc-label">Validation Accuracy</div>
-      <br><br>
+      <div class="acc">84.12%</div>
+      <div class="acc-label">Validation Accuracy</div><br>
       <table>
         <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
-        <tr><td><span class="badge badge-green">benign</span></td><td>95.9%</td><td>98.2%</td><td>97.0%</td></tr><tr><td><span class="badge badge-blue">malware</span></td><td>99.0%</td><td>66.1%</td><td>79.3%</td></tr><tr><td><span class="badge badge-amber">phishing</span></td><td>69.9%</td><td>95.3%</td><td>80.7%</td></tr>
+        <tr><td><span class="badge badge-g">benign</span></td><td>84.2%</td><td>83.0%</td><td>83.6%</td></tr><tr><td><span class="badge badge-b">malware</span></td><td>86.0%</td><td>79.6%</td><td>82.7%</td></tr><tr><td><span class="badge badge-a">phishing</span></td><td>82.5%</td><td>89.8%</td><td>86.0%</td></tr>
       </table>
     </div>
     <div class="card">
-      <h3>XGBoost ✓ Selected</h3>
-      <div class="acc-badge">85.31%</div>
-      <div class="acc-label">Validation Accuracy</div>
-      <br><br>
+      <h3>XGBoost &#10003; Selected</h3>
+      <div class="acc">84.18%</div>
+      <div class="acc-label">Validation Accuracy</div><br>
       <table>
         <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
-        <tr><td><span class="badge badge-green">benign</span></td><td>95.9%</td><td>99.0%</td><td>97.5%</td></tr><tr><td><span class="badge badge-blue">malware</span></td><td>99.0%</td><td>65.7%</td><td>79.0%</td></tr><tr><td><span class="badge badge-amber">phishing</span></td><td>70.1%</td><td>95.3%</td><td>80.8%</td></tr>
+        <tr><td><span class="badge badge-g">benign</span></td><td>84.9%</td><td>82.5%</td><td>83.6%</td></tr><tr><td><span class="badge badge-b">malware</span></td><td>85.2%</td><td>79.8%</td><td>82.4%</td></tr><tr><td><span class="badge badge-a">phishing</span></td><td>82.6%</td><td>90.4%</td><td>86.3%</td></tr>
       </table>
     </div>
   </div>
 
-  <p class="section-title">Model Comparison</p>
-  <div class="full-card">
-    <div class="chart-wrap"><canvas id="compareChart"></canvas></div>
-  </div>
+  <p class="sec-title">Model Comparison</p>
+  <div class="full"><div class="chart-wrap"><canvas id="cmpChart"></canvas></div></div>
 
-  <p class="section-title">Feature Importance — XGBoost</p>
-  <div class="full-card">
-    <div class="chart-wrap" style="height:300px"><canvas id="fiChart"></canvas></div>
-  </div>
+  <p class="sec-title">Feature Importance — XGBoost</p>
+  <div class="full"><div class="chart-wrap" style="height:340px"><canvas id="fiChart"></canvas></div></div>
 
-  <p class="section-title">Confusion Matrices</p>
+  <p class="sec-title">Confusion Matrices</p>
   <div class="grid-2">
     <div class="card">
       <h3>Random Forest</h3>
-      <table class="cm-table">
+      <table class="cm">
         <tr><th></th><th>BEN</th><th>MAL</th><th>PHI</th></tr>
-        <tr><td><strong>BEN</strong></td><td class="cm-high">704</td><td class="cm-low">0</td><td class="cm-mid">13</td></tr><tr><td><strong>MAL</strong></td><td class="cm-low">0</td><td class="cm-high">592</td><td class="cm-mid">303</td></tr><tr><td><strong>PHI</strong></td><td class="cm-mid">30</td><td class="cm-mid">6</td><td class="cm-high">735</td></tr>
+        <tr><td><strong>BEN</strong></td><td class="hi">2667</td><td class="md">234</td><td class="md">314</td></tr><tr><td><strong>MAL</strong></td><td class="md">342</td><td class="hi">2269</td><td class="md">239</td></tr><tr><td><strong>PHI</strong></td><td class="md">160</td><td class="md">136</td><td class="hi">2613</td></tr>
       </table>
-      <p style="font-size:12px;color:#888;margin-top:8px">Rows = Actual, Columns = Predicted</p>
+      <p style="font-size:11px;color:#888;margin-top:6px">Rows = Actual, Columns = Predicted</p>
     </div>
     <div class="card">
-      <h3>XGBoost ✓ Selected</h3>
-      <table class="cm-table">
+      <h3>XGBoost</h3>
+      <table class="cm">
         <tr><th></th><th>BEN</th><th>MAL</th><th>PHI</th></tr>
-        <tr><td><strong>BEN</strong></td><td class="cm-high">710</td><td class="cm-low">0</td><td class="cm-mid">7</td></tr><tr><td><strong>MAL</strong></td><td class="cm-low">0</td><td class="cm-high">588</td><td class="cm-mid">307</td></tr><tr><td><strong>PHI</strong></td><td class="cm-mid">30</td><td class="cm-mid">6</td><td class="cm-high">735</td></tr>
+        <tr><td><strong>BEN</strong></td><td class="hi">2651</td><td class="md">245</td><td class="md">319</td></tr><tr><td><strong>MAL</strong></td><td class="md">343</td><td class="hi">2274</td><td class="md">233</td></tr><tr><td><strong>PHI</strong></td><td class="md">130</td><td class="md">150</td><td class="hi">2629</td></tr>
       </table>
-      <p style="font-size:12px;color:#888;margin-top:8px">Rows = Actual, Columns = Predicted</p>
+      <p style="font-size:11px;color:#888;margin-top:6px">Rows = Actual, Columns = Predicted</p>
     </div>
   </div>
 
-  <p class="section-title">Selection Reasoning</p>
-  <div class="full-card">
-    <div class="reasoning">
+  <p class="sec-title">Selection Reasoning</p>
+  <div class="full">
+    <div class="note">
       <strong>Why XGBoost was selected:</strong><br><br>
-      Both models achieved similar validation accuracy (~85%). XGBoost edged ahead with
-      <strong>85.31%</strong> vs Random Forest's <strong>85.23%</strong>.
-      Phishing recall is strong at ~95% for both models, meaning the system correctly catches
-      most phishing URLs. Malware recall (~66%) has room for improvement — this will be
-      addressed in Layer 2 (heuristic scoring) and Layer 3 (threat intelligence),
-      which together form the final fusion score. The selected model is saved and ready
-      for integration into the detection pipeline.
+      Both models were trained on the same 60,000-URL dataset with 20 features.
+      XGBoost achieved <strong>84.18%</strong> validation accuracy vs Random Forest's <strong>84.12%</strong>.
+      XGBoost's boosting mechanism focuses successive trees on previously misclassified examples,
+      giving it an advantage on ambiguous URL patterns. Its built-in regularization
+      (subsample=0.8, colsample_bytree=0.8, gamma=0.1) helps prevent overfitting on the larger dataset.
+      The tuned hyperparameters (400 trees, depth 8, learning rate 0.05) with early stopping
+      provide a robust model that generalizes well to unseen URLs.
     </div>
   </div>
 
@@ -125,36 +118,30 @@
 
 <script>
 const classes = ["benign", "malware", "phishing"];
-const rfReport  = {"benign": {"precision": 0.9591280653950953, "recall": 0.9818688981868898, "f1-score": 0.9703652653342523, "support": 717.0}, "malware": {"precision": 0.9899665551839465, "recall": 0.6614525139664804, "f1-score": 0.7930341594105828, "support": 895.0}, "phishing": {"precision": 0.6993339676498572, "recall": 0.953307392996109, "f1-score": 0.8068057080131723, "support": 771.0}, "accuracy": 0.8522870331514897, "macro avg": {"precision": 0.882809529409633, "recall": 0.8655429350498265, "f1-score": 0.8567350442526691, "support": 2383.0}, "weighted avg": {"precision": 0.8866560549038839, "recall": 0.8522870331514897, "f1-score": 0.8508454338209342, "support": 2383.0}};
-const xgbReport = {"benign": {"precision": 0.9594594594594594, "recall": 0.9902370990237099, "f1-score": 0.9746053534660261, "support": 717.0}, "malware": {"precision": 0.98989898989899, "recall": 0.6569832402234637, "f1-score": 0.7897918065815984, "support": 895.0}, "phishing": {"precision": 0.7006673021925643, "recall": 0.953307392996109, "f1-score": 0.8076923076923077, "support": 771.0}, "accuracy": 0.8531263113722198, "macro avg": {"precision": 0.8833419171836713, "recall": 0.8668425774144275, "f1-score": 0.8573631559133107, "support": 2383.0}, "weighted avg": {"precision": 0.8871617785910597, "recall": 0.8531263113722198, "f1-score": 0.8511902956594379, "support": 2383.0}};
-const rfFI  = {"url_length": 0.2441, "path_length": 0.1775, "num_subdomains": 0.1951, "num_digits": 0.1224, "num_hyphens_domain": 0.0348, "is_https": 0.0434, "is_domain_ip": 0.0478, "has_shortener": 0.0, "has_suspicious_keywords": 0.0043, "is_brand_impersonation": 0.003, "has_at_symbol": 0.0002, "has_double_slash": 0.0002, "has_encoded_chars": 0.0002, "num_query_params": 0.0055, "domain_entropy": 0.1053, "tld_category": 0.0161};
-const xgbFI = {"url_length": 0.13249999284744263, "path_length": 0.13989999890327454, "num_subdomains": 0.4442000091075897, "num_digits": 0.01979999989271164, "num_hyphens_domain": 0.05590000003576279, "is_https": 0.05270000174641609, "is_domain_ip": 0.06260000169277191, "has_shortener": 0.0, "has_suspicious_keywords": 0.008100000210106373, "is_brand_impersonation": 0.012000000104308128, "has_at_symbol": 0.0, "has_double_slash": 0.002099999925121665, "has_encoded_chars": 0.0031999999191612005, "num_query_params": 0.01769999973475933, "domain_entropy": 0.03539999946951866, "tld_category": 0.014000000432133675};
-const winner = "XGBoost";
-const winnerFI = winner === "XGBoost" ? xgbFI : rfFI;
+const rfR = {"benign": {"precision": 0.8415904070684759, "recall": 0.8295489891135304, "f1-score": 0.8355263157894737, "support": 3215.0}, "malware": {"precision": 0.8597953770367563, "recall": 0.796140350877193, "f1-score": 0.8267443978866824, "support": 2850.0}, "phishing": {"precision": 0.8253316487681617, "recall": 0.8982468202131316, "f1-score": 0.860246913580247, "support": 2909.0}, "accuracy": 0.841207934031647, "macro avg": {"precision": 0.8422391442911312, "recall": 0.841312053401285, "f1-score": 0.8408392090854676, "support": 8974.0}, "weighted avg": {"precision": 0.8421015990134264, "recall": 0.841207934031647, "f1-score": 0.840750714379891, "support": 8974.0}};
+const xgbR = {"benign": {"precision": 0.8485915492957746, "recall": 0.8245723172628305, "f1-score": 0.8364095283167692, "support": 3215.0}, "malware": {"precision": 0.8520044960659423, "recall": 0.7978947368421052, "f1-score": 0.8240623301322704, "support": 2850.0}, "phishing": {"precision": 0.82646966362779, "recall": 0.903746992093503, "f1-score": 0.8633825944170772, "support": 2909.0}, "accuracy": 0.8417650991753955, "macro avg": {"precision": 0.8423552363298357, "recall": 0.842071348732813, "f1-score": 0.841284817622039, "support": 8974.0}, "weighted avg": {"precision": 0.8425044457618779, "recall": 0.8417650991753955, "f1-score": 0.8412318076191956, "support": 8974.0}};
+const winnerFI = {"url_length": 0.021299999207258224, "path_length": 0.09650000184774399, "num_subdomains": 0.12720000743865967, "num_digits": 0.023499999195337296, "num_hyphens_domain": 0.02500000037252903, "is_https": 0.11479999870061874, "is_domain_ip": 0.05719999969005585, "has_shortener": 0.007899999618530273, "has_suspicious_keywords": 0.15549999475479126, "is_brand_impersonation": 0.025200000032782555, "has_at_symbol": 0.009700000286102295, "has_double_slash": 0.022600000724196434, "has_encoded_chars": 0.01899999938905239, "num_query_params": 0.07569999992847443, "domain_entropy": 0.015799999237060547, "tld_category": 0.08179999887943268, "is_safe_country_tld": 0.024800000712275505, "domain_word_len": 0.030300000682473183, "has_safe_extension": 0.03579999879002571, "digit_ratio": 0.030300000682473183};
 
-const metrics = ["precision","recall","f1-score"];
-const colors = ["#0f6e56","#185fa5","#854f0b"];
-
-new Chart(document.getElementById("compareChart"), {
-  type: "bar",
-  data: {
-    labels: classes,
-    datasets: [
-      { label: "RF Precision",  data: classes.map(c => +(rfReport[c].precision*100).toFixed(1)),  backgroundColor: "#9fe1cb" },
-      { label: "RF Recall",     data: classes.map(c => +(rfReport[c].recall*100).toFixed(1)),     backgroundColor: "#5dcaa5" },
-      { label: "XGB Precision", data: classes.map(c => +(xgbReport[c].precision*100).toFixed(1)), backgroundColor: "#b5d4f4" },
-      { label: "XGB Recall",    data: classes.map(c => +(xgbReport[c].recall*100).toFixed(1)),    backgroundColor: "#378add" },
+new Chart(document.getElementById("cmpChart"), {
+  type:"bar",
+  data:{
+    labels:classes,
+    datasets:[
+      {label:"RF Precision", data:classes.map(c=>+(rfR[c].precision*100).toFixed(1)), backgroundColor:"#9fe1cb"},
+      {label:"RF Recall",    data:classes.map(c=>+(rfR[c].recall*100).toFixed(1)),    backgroundColor:"#5dcaa5"},
+      {label:"XGB Precision",data:classes.map(c=>+(xgbR[c].precision*100).toFixed(1)),backgroundColor:"#b5d4f4"},
+      {label:"XGB Recall",   data:classes.map(c=>+(xgbR[c].recall*100).toFixed(1)),   backgroundColor:"#378add"},
     ]
   },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } }, scales: { y: { min: 50, max: 100, ticks: { callback: v => v+"%" } } } }
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{min:50,max:100,ticks:{callback:v=>v+"%"}}}}
 });
 
-const fiLabels = Object.keys(winnerFI).sort((a,b) => winnerFI[b]-winnerFI[a]);
-const fiValues = fiLabels.map(k => +(winnerFI[k]*100).toFixed(2));
+const fiL = Object.keys(winnerFI).sort((a,b)=>winnerFI[b]-winnerFI[a]);
+const fiV = fiL.map(k=>+(winnerFI[k]*100).toFixed(2));
 new Chart(document.getElementById("fiChart"), {
-  type: "bar",
-  data: { labels: fiLabels, datasets: [{ label: "Importance %", data: fiValues, backgroundColor: "#378add" }] },
-  options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: v => v+"%" } } } }
+  type:"bar",
+  data:{labels:fiL, datasets:[{label:"Importance %",data:fiV,backgroundColor:"#378add"}]},
+  options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v+"%"}}}}
 });
 </script>
 </body>
