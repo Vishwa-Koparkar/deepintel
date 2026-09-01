@@ -25,18 +25,15 @@ y_val   = le.transform(val["label"])
 print("Training tuned XGBoost with 20 features...")
 model = XGBClassifier(
     n_estimators=400,
-    max_depth=8,
+    max_depth=6,           # reduce from 8
     learning_rate=0.05,
     subsample=0.8,
     colsample_bytree=0.8,
-    min_child_weight=3,
-    gamma=0.1,
-    use_label_encoder=False,
-    eval_metric="mlogloss",
-    random_state=42,
-    n_jobs=-1,
+    min_child_weight=5,    # increase from 3
+    gamma=0.2,             # increase from 0.1
+    reg_lambda=1.5,        # add L2 regularization
     early_stopping_rounds=20,
-    verbosity=0,
+    eval_metric="mlogloss"
 )
 model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
 

@@ -104,10 +104,23 @@ def analyze(url):
     fused = round(W_ML*ml_score + W_HEURISTIC*heuristic_score + W_THREAT*ti_score, 4)
     if threat_flag:
         fused = max(fused, 0.75)
+
+    # Override: if a domain is confirmed in a threat intel blocklist but the ML
+    # model still predicted benign, trust the blocklist (ground truth) over the
+    # statistical prediction. Without this, threat_intel and heuristic layers
+    # only ever influenced risk_level/score display, never the actual
+    # classification used for accuracy/FPR/FNR evaluation.
+    final_label = ml_label
+    if threat_flag and ml_label == "benign":
+        if matched_lists and "urlhaus" in [m.lower() for m in matched_lists]:
+            final_label = "malware"
+        else:
+            final_label = "phishing"
+
     level = risk_level(fused)
     return {
         "url":        url,
-        "prediction": ml_label,
+        "prediction": final_label,
         "risk_level": level,
         "score":      fused,
         "ml": {

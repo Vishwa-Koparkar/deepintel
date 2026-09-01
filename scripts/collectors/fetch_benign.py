@@ -4,7 +4,7 @@ from tqdm import tqdm
 import time
 
 OUTPUT_FILE = "data/benign.csv"
-TARGET_COUNT = 5000
+TARGET_COUNT = 15000
 
 # Fetch top domains from Majestic Million and save as benign URLs
 def fetch_benign_urls():

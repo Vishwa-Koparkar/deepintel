@@ -1,9 +1,9 @@
 {
-  "accuracy": 87.59,
-  "false_negative_rate": 6.14,
-  "false_positive_rate": 13.9,
-  "total_urls": 9350,
-  "elapsed_seconds": 40.5,
+  "accuracy": 96.58,
+  "false_negative_rate": 2.58,
+  "false_positive_rate": 1.97,
+  "total_urls": 5379,
+  "elapsed_seconds": 11.8,
   "classes": [
     "benign",
     "malware",
@@ -11,52 +11,52 @@
   ],
   "report": {
     "benign": {
-      "precision": 0.8893939393939394,
-      "recall": 0.8609562921677911,
-      "f1-score": 0.8749441049336711,
-      "support": 3409.0
+      "precision": 0.9643956043956043,
+      "recall": 0.9803395889186773,
+      "f1-score": 0.9723022379791713,
+      "support": 2238.0
     },
     "malware": {
-      "precision": 0.8860192837465565,
-      "recall": 0.8651647612642905,
-      "f1-score": 0.8754678462061926,
-      "support": 2974.0
+      "precision": 0.9830508474576272,
+      "recall": 0.9220985691573926,
+      "f1-score": 0.9515996718621821,
+      "support": 629.0
     },
     "phishing": {
-      "precision": 0.852511125238398,
-      "recall": 0.9039433771486349,
-      "f1-score": 0.8774742352363815,
-      "support": 2967.0
+      "precision": 0.9630071599045346,
+      "recall": 0.9637738853503185,
+      "f1-score": 0.9633903700756068,
+      "support": 2512.0
     },
-    "accuracy": 0.8759358288770054,
+    "accuracy": 0.9657928983082358,
     "macro avg": {
-      "precision": 0.8759747827929646,
-      "recall": 0.8766881435269056,
-      "f1-score": 0.875962062125415,
-      "support": 9350.0
+      "precision": 0.9701512039192554,
+      "recall": 0.9554040144754629,
+      "f1-score": 0.9624307599723201,
+      "support": 5379.0
     },
     "weighted avg": {
-      "precision": 0.8766166628704305,
-      "recall": 0.8759358288770054,
-      "f1-score": 0.8759135705114914,
-      "support": 9350.0
+      "precision": 0.9659286728701246,
+      "recall": 0.9657928983082358,
+      "f1-score": 0.965719503965165,
+      "support": 5379.0
     }
   },
   "cm": [
     [
-      2935,
-      163,
-      311
+      2194,
+      0,
+      44
     ],
     [
-      248,
-      2573,
-      153
+      0,
+      580,
+      49
     ],
     [
-      117,
-      168,
-      2682
+      81,
+      10,
+      2421
     ]
   ]
 }

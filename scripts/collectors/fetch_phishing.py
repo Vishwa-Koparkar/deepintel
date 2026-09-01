@@ -4,7 +4,7 @@ import csv
 from io import StringIO
 
 OUTPUT_FILE = "data/phishing.csv"
-TARGET_COUNT = 5000
+TARGET_COUNT = 15000
 
 def fetch_from_openphish():
     print("Fetching from OpenPhish...")

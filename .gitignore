@@ -15,4 +15,6 @@ data/kaggle/
 .DS_Store
 
 # IDE
-.vscode/
+.vscode/data/new_url_count.txt
+logs/
+retrain_trigger.flag

@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 FILES = {
     "benign":   "data/benign.csv",
@@ -23,9 +23,31 @@ def is_valid_url(url):
         return False
 
 def normalize_url(url):
-    url = url.strip().lower()
-    url = url.rstrip("/")
-    return url
+    try:
+        url = url.strip()
+        # Add scheme if missing
+        if not url.startswith("http://") and not url.startswith("https://"):
+            url = "http://" + url
+        
+        parsed = urlparse(url)
+        
+        # Only lowercase scheme and domain — preserve path case
+        normalized = urlunparse((
+            parsed.scheme.lower(),
+            parsed.netloc.lower(),
+            parsed.path,            # keep original case
+            parsed.params,
+            parsed.query,
+            parsed.fragment
+        ))
+        
+        # Remove trailing slash from path only if path is just "/"
+        if normalized.endswith("/") and normalized.count("/") == 3:
+            normalized = normalized.rstrip("/")
+            
+        return normalized
+    except:
+        return url.strip()
 
 def clean_df(df, label):
     original = len(df)
