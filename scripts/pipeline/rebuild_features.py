@@ -10,6 +10,23 @@ import math
 from urllib.parse import urlparse
 from sklearn.model_selection import train_test_split
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from augment_benign import augment_benign
+import feedback
+
+FEEDBACK_WEIGHT = 5.0   # a URL the user explicitly corrected counts this much more than a dataset row
+
+TWO_LEVEL_SLDS = {"co","com","org","net","gov","edu","ac","go","or","ne"}
+
+def base_domain(url):
+    host = urlparse(url).netloc.lower().split(":")[0]
+    parts = host.split(".")
+    if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in TWO_LEVEL_SLDS:
+        return ".".join(parts[-3:])
+    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+
 INPUT_FILE   = "data/dataset_clean.csv"
 FEATURES_FILE = "data/dataset_features.csv"
 
@@ -34,6 +51,11 @@ SAFE_COUNTRY_TLDS = {
 # Legitimate non-suspicious path extensions
 SAFE_EXTENSIONS = {".html",".htm",".php",".asp",".aspx",".jsp",".pdf",".png",".jpg",".gif",".css",".js"}
 
+def _brand_fold(s):
+    """Fold look-alike characters so amaz0n / paypa1 / rnicrosoft still match their brand."""
+    return s.replace("rn", "m").replace("vv", "w").translate(str.maketrans("0135$", "oless"))
+
+
 def entropy(s):
     if not s: return 0.0
     freq = {}
@@ -52,10 +74,10 @@ def extract_features(url):
         tld     = "."+parts[-1] if len(parts)>1 else ""
         tld2    = "."+".".join(parts[-2:]) if len(parts)>2 else tld  # e.g. .co.uk
 
-        detected_brand = next((b for b in BRANDS if b in domain), None)
+        detected_brand = next((b for b in BRANDS if b in _brand_fold(domain)), None)
         is_imp = 0
         if detected_brand:
-            is_real = domain in (f"{detected_brand}.com",f"{detected_brand}.org",f"www.{detected_brand}.com")
+            is_real = bool(re.search(rf"(^|\.){detected_brand}\.((com|org|net)|[a-z]{{2}}|(co|com|org|gov|ac)\.[a-z]{{2}})$", domain))
             is_imp = int(not is_real)
 
         # NEW feature 1: is domain a known safe country/institutional TLD
@@ -99,8 +121,33 @@ def extract_features(url):
     except:
         return {k:0 for k in ["url_length","path_length","num_subdomains","num_digits","num_hyphens_domain","is_https","is_domain_ip","has_shortener","has_suspicious_keywords","is_brand_impersonation","has_at_symbol","has_double_slash","has_encoded_chars","num_query_params","domain_entropy","tld_category","is_safe_country_tld","domain_word_len","has_safe_extension","digit_ratio"]}
 
+def add_user_corrections(train, val, test):
+    """
+    URLs the user reported as wrong (feedback.py) go into TRAIN only, with a higher sample weight:
+    they teach the model, but validation/test stay a measurement of the public data, not of the
+    user's own fixes. Any same-URL row elsewhere is dropped so a correction can't be contradicted.
+    """
+    train, val, test = (d.assign(weight=1.0) for d in (train, val, test))
+    rows = feedback.training_rows()
+    if not rows:
+        return train, val, test
+
+    urls = {u for u, _ in rows}
+    train, val, test = (d[~d["url"].isin(urls)] for d in (train, val, test))
+    stamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+    fb_rows = []
+    for url, label in rows:
+        f = extract_features(url)
+        f.update({"url": url, "label": label, "source": "user_feedback", "timestamp": stamp, "weight": FEEDBACK_WEIGHT})
+        fb_rows.append(f)
+    fb_df = pd.DataFrame(fb_rows)[train.columns]
+    print(f"Added {len(fb_df)} user corrections to the training set (weight {FEEDBACK_WEIGHT})")
+    return pd.concat([train, fb_df], ignore_index=True), val, test
+
+
 def main():
     df = pd.read_csv(INPUT_FILE)
+    df = augment_benign(df)   # realistic www/subdomain/path variants; see augment_benign.py
     print(f"Re-extracting features for {len(df)} URLs...")
 
     rows = []
@@ -117,13 +164,14 @@ def main():
     print(f"Saved {len(feat_df)} rows with {len(feat_cols)} features to {FEATURES_FILE}")
 
     # Rebuild split
-    feat_df["domain"] = feat_df["url"].apply(lambda u: urlparse(u).netloc.lower().split(":")[0])
+    feat_df["domain"] = feat_df["url"].apply(base_domain)
     domains = feat_df["domain"].unique()
     train_d, temp_d = train_test_split(domains, test_size=0.30, random_state=42)
     val_d,   test_d = train_test_split(temp_d,  test_size=0.50, random_state=42)
     train = feat_df[feat_df["domain"].isin(train_d)].drop(columns=["domain"])
     val   = feat_df[feat_df["domain"].isin(val_d)].drop(columns=["domain"])
     test  = feat_df[feat_df["domain"].isin(test_d)].drop(columns=["domain"])
+    train, val, test = add_user_corrections(train, val, test)
     train.to_csv("data/train.csv",index=False)
     val.to_csv("data/val.csv",index=False)
     test.to_csv("data/test.csv",index=False)

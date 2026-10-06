@@ -15,6 +15,10 @@ data/kaggle/
 .DS_Store
 
 # IDE
-.vscode/data/new_url_count.txt
+.vscode/
+data/new_url_count.txt
 logs/
 retrain_trigger.flag
+
+# Personal feedback database (local to each user)
+data/feedback.db

@@ -1,9 +1,10 @@
 {
-  "accuracy": 96.58,
-  "false_negative_rate": 2.58,
-  "false_positive_rate": 1.97,
-  "total_urls": 5379,
-  "elapsed_seconds": 11.8,
+  "slash_flips": 0,
+  "accuracy": 92.75,
+  "false_negative_rate": 8.64,
+  "false_positive_rate": 4.94,
+  "total_urls": 6555,
+  "elapsed_seconds": 46.7,
   "classes": [
     "benign",
     "malware",
@@ -11,52 +12,52 @@
   ],
   "report": {
     "benign": {
-      "precision": 0.9643956043956043,
-      "recall": 0.9803395889186773,
-      "f1-score": 0.9723022379791713,
-      "support": 2238.0
+      "precision": 0.9547785547785548,
+      "recall": 0.9505685773961476,
+      "f1-score": 0.9526689149901151,
+      "support": 4309.0
     },
     "malware": {
-      "precision": 0.9830508474576272,
-      "recall": 0.9220985691573926,
-      "f1-score": 0.9515996718621821,
-      "support": 629.0
+      "precision": 0.978319783197832,
+      "recall": 0.9047619047619048,
+      "f1-score": 0.9401041666666666,
+      "support": 798.0
     },
     "phishing": {
-      "precision": 0.9630071599045346,
-      "recall": 0.9637738853503185,
-      "f1-score": 0.9633903700756068,
-      "support": 2512.0
+      "precision": 0.8264571054354944,
+      "recall": 0.8715469613259669,
+      "f1-score": 0.8484033613445379,
+      "support": 1448.0
     },
-    "accuracy": 0.9657928983082358,
+    "accuracy": 0.927536231884058,
     "macro avg": {
-      "precision": 0.9701512039192554,
-      "recall": 0.9554040144754629,
-      "f1-score": 0.9624307599723201,
-      "support": 5379.0
+      "precision": 0.919851814470627,
+      "recall": 0.9089591478280065,
+      "f1-score": 0.9137254810004398,
+      "support": 6555.0
     },
     "weighted avg": {
-      "precision": 0.9659286728701246,
-      "recall": 0.9657928983082358,
-      "f1-score": 0.965719503965165,
-      "support": 5379.0
+      "precision": 0.9292982255077437,
+      "recall": 0.927536231884058,
+      "f1-score": 0.9281070247016471,
+      "support": 6555.0
     }
   },
   "cm": [
     [
-      2194,
-      0,
-      44
+      4096,
+      9,
+      204
     ],
     [
-      0,
-      580,
-      49
+      15,
+      722,
+      61
     ],
     [
-      81,
-      10,
-      2421
+      179,
+      7,
+      1262
     ]
   ]
 }

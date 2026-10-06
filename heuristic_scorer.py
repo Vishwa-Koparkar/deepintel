@@ -53,6 +53,11 @@ SUSPICIOUS_TLDS = {
     ".download", ".racing", ".win", ".bid"
 }
 
+def _brand_fold(s):
+    """Fold look-alike characters so amaz0n / paypa1 / rnicrosoft still match their brand."""
+    return s.replace("rn", "m").replace("vv", "w").translate(str.maketrans("0135$", "oless"))
+
+
 def entropy(s):
     if not s:
         return 0.0
@@ -91,10 +96,9 @@ def score_url(url):
     check("is_http_not_https",
           parsed.scheme == "http")
 
-    detected_brand = next((b for b in BRANDS if b in domain), None)
+    detected_brand = next((b for b in BRANDS if b in _brand_fold(domain)), None)
     if detected_brand:
-        is_real = domain in (f"{detected_brand}.com", f"{detected_brand}.org",
-                              f"www.{detected_brand}.com")
+        is_real = bool(re.search(rf"(^|\.){detected_brand}\.((com|org|net)|[a-z]{{2}}|(co|com|org|gov|ac)\.[a-z]{{2}})$", domain))
         check("has_brand_impersonation", not is_real)
 
     check("has_suspicious_keywords",

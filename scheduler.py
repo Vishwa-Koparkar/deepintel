@@ -1,6 +1,7 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import subprocess
+import sys
 import logging
 import os
 from datetime import datetime
@@ -13,6 +14,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+FEEDBACK_RETRAIN_THRESHOLD = 10   # unlearned user corrections that trigger a retrain
+
 scheduler = BlockingScheduler()
 
 
@@ -23,7 +26,7 @@ def run_pipeline():
 
     try:
         result = subprocess.run(
-            ["python", "auto_update.py"], capture_output=True, text=True,
+            [sys.executable, "auto_update.py"], capture_output=True, text=True,
             cwd=os.path.dirname(os.path.abspath(__file__))
         )
         logger.info(result.stdout)
@@ -33,19 +36,35 @@ def run_pipeline():
         logger.error(f"Pipeline failed: {e}")
         return
 
-    if os.path.exists("retrain_trigger.flag"):
-        logger.info("Retrain trigger detected. Starting model retraining...")
+    root = os.path.dirname(os.path.abspath(__file__))
+    flag = os.path.join(root, "retrain_trigger.flag")
+
+    reasons = []
+    if os.path.exists(flag):
+        reasons.append("new threat-feed URLs reached the threshold")
+    try:
+        import feedback
+        pending = feedback.count_untrained()
+        if pending >= FEEDBACK_RETRAIN_THRESHOLD:
+            reasons.append(f"{pending} unlearned user corrections")
+    except Exception as e:
+        logger.warning(f"Could not check feedback: {e}")
+
+    if reasons:
+        logger.info(f"Retrain triggered ({'; '.join(reasons)}). Rebuilding features, then training...")
         try:
-            retrain = subprocess.run(
-                ["python", "scripts/evaluation/tune_model.py"],
-                capture_output=True, text=True,
-                cwd=os.path.dirname(os.path.abspath(__file__))
-            )
-            logger.info(retrain.stdout)
-            os.remove("retrain_trigger.flag")
-            logger.info("Model retrained successfully.")
+            from scripts.pipeline import retrain
+            ok = retrain.run(log=logger.info)
         except Exception as e:
-            logger.error(f"Retraining failed: {e}")
+            logger.error(f"Retraining crashed: {e}")
+            ok = False
+        if ok:
+            if os.path.exists(flag):
+                os.remove(flag)
+            logger.info("Model retrained successfully.")
+        else:
+            # Keep the flag so the next run retries instead of silently dropping the update
+            logger.error("Retraining failed or was rejected; keeping the current model and the retrain flag.")
     else:
         logger.info("Retrain threshold not yet reached.")
 

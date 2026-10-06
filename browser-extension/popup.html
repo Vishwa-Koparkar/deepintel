@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <h1>DeepIntel</h1>
+    <span id="current-url"></span>
+    <div id="scheme-note" class="scheme-note hidden"></div>
+  </div>
+
+  <div id="loading">Analyzing...</div>
+
+  <div id="result" class="hidden">
+    <div id="risk-badge" class="risk-badge"></div>
+    <div class="section">
+      <div class="label">Prediction</div>
+      <div id="prediction" class="value"></div>
+    </div>
+    <div class="section">
+      <div class="label">Confidence</div>
+      <div id="confidence" class="value"></div>
+    </div>
+    <div class="section">
+      <div class="label">Analysis</div>
+      <ul id="reasons"></ul>
+    </div>
+    <div id="safe-alt" class="safe-alt hidden">
+      <span id="safe-alt-text">Safe alternative:</span>
+      <a id="safe-alt-link" href="#" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+  </div>
+
+  <div id="feedback" class="feedback hidden">
+    <div id="fb-status" class="fb-status hidden">
+      <span id="fb-status-text"></span>
+      <button id="fb-undo" class="link-btn">Undo</button>
+    </div>
+    <button id="fb-btn" class="fb-btn"></button>
+    <div id="fb-msg" class="fb-msg"></div>
+  </div>
+
+  <div id="error" class="hidden">
+    No result for this page. Make sure the DeepIntel API is running at localhost:8000, then reload the page. (Only http/https pages are analyzed.)
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

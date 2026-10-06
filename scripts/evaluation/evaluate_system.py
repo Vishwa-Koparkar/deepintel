@@ -4,6 +4,15 @@ Tests the entire pipeline: features -> ML -> heuristic -> threat intel -> fusion
 Compares predicted vs actual labels and generates a final report.
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # project root, so `analyzer` imports from any cwd
+
+# Measure the detection layers themselves: the allowlist is built from the same benign source as the
+# test set, and personal feedback corrections are not part of the public benchmark.
+os.environ.setdefault("DEEPINTEL_ALLOWLIST", "0")
+os.environ.setdefault("DEEPINTEL_FEEDBACK", "0")
+
 import pandas as pd
 import numpy as np
 from sklearn.metrics import (
@@ -62,7 +71,14 @@ def run_eval():
     fp = sum(b and p for b, p in zip(benign_mask, predicted_malicious))
     fpr = round(fp / sum(benign_mask) * 100, 2) if sum(benign_mask) > 0 else 0
 
+    # Regression guard: browsers always add a trailing "/" to a bare host. That slash must never change a
+    # verdict (an earlier model learned "trailing slash = benign" and waved phishing sites through).
+    bare = df[df["url"].str.match(r"^https?://[^/]+$")]["url"].tolist()[:1500]
+    slash_flips = sum(analyze(u)["prediction"] != analyze(u + "/")["prediction"] for u in bare)
+    print(f"Trailing-slash check: {slash_flips} of {len(bare)} bare-host URLs changed verdict when '/' was added (must be 0)")
+
     results = {
+        "slash_flips": slash_flips,
         "accuracy": acc,
         "false_negative_rate": fnr,
         "false_positive_rate": fpr,

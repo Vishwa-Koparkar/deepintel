@@ -1,0 +1,103 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 320px;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  background: #f0f4f8;
+  color: #1a2332;
+}
+
+.header {
+  background: #0d1b3e;
+  color: white;
+  padding: 14px 16px;
+}
+
+.header h1 { font-size: 16px; font-weight: 700; }
+#current-url { font-size: 11px; color: #a8c5e8; }
+
+#loading, #error {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #7a90a8;
+}
+
+#result { padding: 16px; }
+
+.risk-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: white;
+  margin-bottom: 14px;
+}
+
+.risk-safe     { background: #0a7c5c; }
+.risk-low      { background: #5a8f3c; }
+.risk-medium   { background: #e6a817; }
+.risk-high     { background: #e67e22; }
+.risk-critical { background: #c0392b; }
+
+.section { margin-bottom: 12px; }
+
+.label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #7a90a8;
+  margin-bottom: 3px;
+}
+
+.value { font-size: 14px; font-weight: 600; }
+
+#reasons { list-style: none; padding-left: 0; }
+#reasons li {
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #e0e8f0;
+}
+#reasons li:last-child { border-bottom: none; }
+
+.safe-alt {
+  margin-top: 12px;
+  padding: 10px;
+  background: #fff3e0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.safe-alt a { color: #1a4fa8; font-weight: 600; display: block; margin-top: 4px; word-break: break-all; }
+
+.scheme-note { font-size: 10.5px; color: #a8c5e8; margin-top: 4px; line-height: 1.35; }
+.feedback { padding: 0 16px 16px; }
+.fb-btn {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a2332;
+  background: white;
+  border: 1px solid #c5d2e0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.fb-btn:hover { background: #eaf0f7; }
+.fb-btn.confirm { background: #fff3e0; border-color: #e6a817; }
+.fb-btn:disabled { opacity: 0.6; cursor: default; }
+.fb-status {
+  font-size: 12px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: #e8f1fb;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.link-btn { background: none; border: none; color: #1a4fa8; font-weight: 600; font-size: 12px; cursor: pointer; }
+.fb-msg { font-size: 11px; color: #c0392b; margin-top: 6px; min-height: 14px; }
+
+.hidden { display: none !important; }

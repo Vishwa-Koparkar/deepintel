@@ -102,17 +102,11 @@
   .card-value { font-size: 30px; font-weight: 700; letter-spacing: -1px; font-family: 'DM Serif Display', serif; }
   .card-sub { font-size: 11px; color: var(--muted); margin-top: 5px; font-family: 'JetBrains Mono', monospace; }
 
-  .viz-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .viz-row { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
 
   .gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; }
   .gauge-label { font-size: 12px; color: var(--muted); margin-top: 8px; font-family: 'JetBrains Mono', monospace; }
 
-  .chart-section { padding: 20px 22px; }
-  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .bar-name { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--muted); width: 70px; text-align: right; flex-shrink: 0; }
-  .bar-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 9px; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
-  .bar-pct { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text); width: 46px; }
 
   .section-card {
     background: var(--bg2);
@@ -136,6 +130,18 @@
   .impact-Medium   { background: #fff3e0; color: var(--medium); }
   .impact-Low      { background: #e3f2fd; color: var(--low); }
   .reason-text { font-size: 14px; color: var(--text); line-height: 1.55; }
+  .fb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .fb-btn { font: inherit; font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text); cursor: pointer; }
+  .fb-btn:hover { background: #eef3f9; }
+  .fb-btn.armed { background: #fff3e0; border-color: #e6a817; }
+  .fb-btn:disabled { opacity: .6; cursor: default; }
+  .fb-note { font-size: 13px; color: var(--muted); }
+  .fb-error { font-size: 13px; color: #c0392b; margin-top: 10px; display: none; }
+  .fb-marked { font-size: 14px; }
+  .link-btn { background: none; border: none; color: #1a4fa8; font: inherit; font-weight: 600; cursor: pointer; padding: 0 4px; }
+  .corr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .corr-table th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 0 8px 8px 0; }
+  .corr-table td { padding: 8px 8px 8px 0; border-top: 1px solid var(--border); vertical-align: top; word-break: break-all; }
   .no-reasons { font-size: 14px; color: var(--safe); display: flex; align-items: center; gap: 8px; font-weight: 500; }
 
   .suggestion-box {
@@ -213,7 +219,6 @@
       <div class="card">
         <div class="card-label">Prediction</div>
         <div class="card-value" id="rPrediction">—</div>
-        <div class="card-sub" id="rConfidence">—</div>
       </div>
       <div class="card">
         <div class="card-label">Risk Level</div>
@@ -233,10 +238,6 @@
         <canvas id="gaugeCanvas" width="220" height="130"></canvas>
         <div class="gauge-label" id="gaugeLabel">—</div>
       </div>
-      <div class="card chart-section">
-        <div class="card-label">Model Confidence</div>
-        <div id="barChart"></div>
-      </div>
     </div>
 
     <div class="section-card">
@@ -244,10 +245,28 @@
       <div id="reasonsList"></div>
     </div>
 
+    <div class="section-card" id="feedbackSection">
+      <div class="section-header">Was this verdict wrong?</div>
+      <div id="fbMarked" class="fb-marked" style="display:none"></div>
+      <div class="fb-row" id="fbControls">
+        <button class="fb-btn" id="fbBtn" onclick="onFeedbackClick()"></button>
+        <span class="fb-note">Your correction takes effect immediately and helps retrain the model.</span>
+      </div>
+      <div class="fb-error" id="fbError"></div>
+    </div>
+
     <div class="section-card" id="suggestionSection" style="display:none">
       <div class="section-header">Safe Alternative</div>
       <div id="suggestionContent"></div>
     </div>
+  </div>
+
+  <div class="section-card" id="correctionsSection" style="display:none">
+    <div class="section-header">Your Corrections <span id="untrainedNote" style="text-transform:none;letter-spacing:0"></span></div>
+    <table class="corr-table">
+      <thead><tr><th>URL / scope</th><th>We said</th><th>You said</th><th>Type</th><th></th></tr></thead>
+      <tbody id="corrBody"></tbody>
+    </table>
   </div>
 
   <div class="section-card" id="historySection" style="display:none">
@@ -261,7 +280,11 @@
 </main>
 
 <script>
-const API = "http://127.0.0.1:8000";
+// Always talk to the DeepIntel API on port 8000. Same origin when the API itself serves this page
+// (http://localhost:8000/dashboard); otherwise (opened from disk, or a preview/live-server on another port) use its address directly.
+const API = (location.protocol.startsWith("http") && location.port === "8000") ? location.origin : "http://127.0.0.1:8000";
+let lastUrl = "";
+let armedLabel = null;
 let history = [];
 
 const RISK_COLORS = {
@@ -300,10 +323,15 @@ async function runAnalysis() {
     });
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     const data = await res.json();
+    lastUrl = url;
     renderResults(data);
     addHistory(data);
+    loadCorrections();
   } catch (err) {
-    showError(`Could not reach the API. Make sure the backend is running: <code>uvicorn api:app --reload</code><br><small>${err.message}</small>`);
+    const unreachable = err instanceof TypeError;   // fetch() itself failed: nothing is listening / blocked
+    showError(unreachable
+      ? `Could not reach the API at ${esc(API)}. Make sure the backend is running: <code>uvicorn api:app --reload</code><br><small>${esc(err.message)}</small>`
+      : `The API at ${esc(API)} returned an error.<br><small>${esc(err.message)}</small>`);
   } finally {
     btn.disabled = false;
     document.getElementById("loadingBox").style.display = "none";
@@ -315,9 +343,6 @@ function renderResults(data) {
 
   document.getElementById("rPrediction").textContent = capitalize(data.prediction);
   document.getElementById("rPrediction").style.color = CLASS_COLORS[data.prediction] || "#333";
-  const topProb = Math.round(Math.max(...Object.values(data.ml_probs)) * 100);
-  document.getElementById("rConfidence").textContent = `${topProb}% confidence`;
-
   document.getElementById("rRiskLevel").textContent = capitalize(data.risk_level);
   document.getElementById("rRiskLevel").style.color = color;
   document.getElementById("rRiskSub").textContent = `Threshold: ${riskThreshold(data.risk_level)}`;
@@ -329,18 +354,6 @@ function renderResults(data) {
   document.getElementById("gaugeLabel").textContent = `${(data.score * 100).toFixed(1)}% risk`;
   document.getElementById("gaugeLabel").style.color = color;
 
-  const bars = Object.entries(data.ml_probs)
-    .sort((a,b) => b[1]-a[1])
-    .map(([cls, prob]) => `
-      <div class="bar-row">
-        <div class="bar-name">${cls}</div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${(prob*100).toFixed(1)}%;background:${CLASS_COLORS[cls]||'#888'}"></div>
-        </div>
-        <div class="bar-pct">${(prob*100).toFixed(1)}%</div>
-      </div>`).join("");
-  document.getElementById("barChart").innerHTML = bars;
-
   const reasonsEl = document.getElementById("reasonsList");
   if (!data.reasons || data.reasons.length === 0) {
     reasonsEl.innerHTML = `<div class="no-reasons">✓ No suspicious signals detected</div>`;
@@ -348,7 +361,7 @@ function renderResults(data) {
     reasonsEl.innerHTML = data.reasons.map(r => `
       <div class="reason-row">
         <span class="impact-badge impact-${r.impact}">${r.impact}</span>
-        <span class="reason-text">${r.reason}</span>
+        <span class="reason-text">${esc(r.reason)}</span>
       </div>`).join("");
   }
 
@@ -365,8 +378,113 @@ function renderResults(data) {
     suggSec.style.display = "none";
   }
 
+  renderFeedback(data);
   document.getElementById("results").style.display = "block";
 }
+
+// --- Personal feedback -----------------------------------------------------------------------
+const SCOPE_TEXT = { url: "this exact page", host: "this site", domain: "this whole domain" };
+
+function renderFeedback(data) {
+  armedLabel = null;
+  document.getElementById("fbError").style.display = "none";
+  const marked = document.getElementById("fbMarked");
+  const controls = document.getElementById("fbControls");
+  const fb = data.feedback;
+  if (fb) {
+    const what = fb.correct_label === "benign" ? "safe" : fb.correct_label;
+    marked.innerHTML = `You marked ${SCOPE_TEXT[fb.scope] || "this"} as <b>${esc(what)}</b>. <button class="link-btn" onclick="undoFeedback(${Number(fb.id)})">Undo</button>`;
+    marked.style.display = "block";
+    controls.style.display = "none";
+    return;
+  }
+  marked.style.display = "none";
+  controls.style.display = "flex";
+  const flagged = data.prediction !== "benign";
+  const btn = document.getElementById("fbBtn");
+  btn.dataset.label = flagged ? "benign" : "phishing";
+  btn.textContent = flagged ? "This site is actually safe" : "This site is actually phishing";
+  btn.classList.remove("armed");
+  btn.disabled = false;
+}
+
+function onFeedbackClick() {
+  const btn = document.getElementById("fbBtn");
+  // Two steps, so a stray click can't silently mark a phishing site as safe
+  if (armedLabel !== btn.dataset.label) {
+    armedLabel = btn.dataset.label;
+    btn.classList.add("armed");
+    btn.textContent = armedLabel === "benign" ? "Click again to mark as SAFE" : "Click again to mark as PHISHING";
+    return;
+  }
+  submitFeedback(btn.dataset.label);
+}
+
+function fbFail(msg) {
+  const el = document.getElementById("fbError");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+async function feedbackRequest(path, options) {
+  const res = await fetch(`${API}${path}`, options);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    let msg = body.detail || `API error: ${res.status}`;
+    if (res.status === 403) msg += `. Open the dashboard at ${API.replace("127.0.0.1", "localhost")}/dashboard to use feedback.`;
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+async function reanalyze() {
+  const res = await fetch(`${API}/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: lastUrl }) });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  renderResults(await res.json());
+  loadCorrections();
+}
+
+async function submitFeedback(label) {
+  document.getElementById("fbBtn").disabled = true;
+  try {
+    await feedbackRequest("/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: lastUrl, correct_label: label }) });
+    await reanalyze();
+  } catch (err) {
+    fbFail(err.message);
+    renderFeedback({ prediction: label === "benign" ? "phishing" : "benign", feedback: null });
+  }
+}
+
+async function undoFeedback(id) {
+  try {
+    await feedbackRequest(`/feedback/${id}`, { method: "DELETE" });
+    if (lastUrl) await reanalyze(); else loadCorrections();
+  } catch (err) {
+    fbFail(err.message);
+  }
+}
+
+async function loadCorrections() {
+  const section = document.getElementById("correctionsSection");
+  try {
+    const { items, untrained } = await feedbackRequest("/feedback");
+    if (!items.length) { section.style.display = "none"; return; }
+    document.getElementById("untrainedNote").textContent = untrained ? `· ${untrained} not yet learned by the model` : "· all learned by the model";
+    document.getElementById("corrBody").innerHTML = items.map(i => `
+      <tr>
+        <td>${esc(i.scope === "url" ? i.norm_url : i.scope_key)}<br><span class="fb-note">${esc(SCOPE_TEXT[i.scope])}${i.note ? " · " + esc(i.note) : ""}</span></td>
+        <td>${esc(i.verdict_given)}</td>
+        <td style="color:${CLASS_COLORS[i.correct_label] || '#333'};font-weight:500">${esc(i.correct_label === "benign" ? "safe" : i.correct_label)}</td>
+        <td>${esc(i.kind.replace("_", " "))}</td>
+        <td><button class="link-btn" onclick="undoFeedback(${Number(i.id)})">Remove</button></td>
+      </tr>`).join("");
+    section.style.display = "block";
+  } catch (err) {
+    section.style.display = "none";   // opened from disk (403) or API down: analysis still works
+  }
+}
+
+loadCorrections();
 
 function drawGauge(score, color) {
   const canvas = document.getElementById("gaugeCanvas");
@@ -404,7 +522,7 @@ function addHistory(data) {
   const bg    = d => RISK_BG[d.risk_level]    || "#eee";
   document.getElementById("historyBody").innerHTML = history.map(h => `
     <tr>
-      <td title="${h.url}">${h.url}</td>
+      <td title="${esc(h.url)}">${esc(h.url)}</td>
       <td style="color:${CLASS_COLORS[h.prediction]||'#333'};font-weight:500">${capitalize(h.prediction)}</td>
       <td><span class="risk-pill" style="background:${bg(h)};color:${color(h)}">${h.risk_level}</span></td>
       <td style="font-family:'JetBrains Mono',monospace">${h.score.toFixed(3)}</td>
@@ -419,6 +537,9 @@ function showError(msg) {
   el.style.display = "block";
 }
 
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 function riskThreshold(level) {
   return { safe:"< 0.20", low:"0.20–0.40", medium:"0.40–0.60", high:"0.60–0.80", critical:"> 0.80" }[level] || "—";
