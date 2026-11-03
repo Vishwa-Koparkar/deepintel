@@ -2,49 +2,71 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <title>DeepIntel</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="header">
-    <h1>DeepIntel</h1>
+  <header class="header">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5l-8-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h1>DeepIntel</h1>
+    </div>
     <span id="current-url"></span>
     <div id="scheme-note" class="scheme-note hidden"></div>
-  </div>
+  </header>
 
-  <div id="loading">Analyzing...</div>
+  <main class="page">
+    <div id="loading" class="card loading"><span class="spinner" aria-hidden="true"></span>Analyzing…</div>
 
-  <div id="result" class="hidden">
-    <div id="risk-badge" class="risk-badge"></div>
-    <div class="section">
-      <div class="label">Prediction</div>
-      <div id="prediction" class="value"></div>
+    <div id="tor-note" class="card tor-note hidden"></div>
+
+    <div id="error" class="card hidden">
+      No result for this page. Make sure the DeepIntel API is running at localhost:8000, then reload the page. (Only http/https pages are analyzed.)
     </div>
-    <div class="section">
-      <div class="label">Confidence</div>
-      <div id="confidence" class="value"></div>
-    </div>
-    <div class="section">
+
+    <section id="result" class="card verdict hidden">
+      <div class="verdict-top">
+        <div id="risk-badge" class="risk-badge"></div>
+        <div id="prediction" class="value"></div>
+      </div>
+      <div class="conf">
+        <div class="label">Confidence</div>
+        <div class="conf-row">
+          <div id="confidence" class="value"></div>
+          <div class="bar"><div id="conf-fill" class="bar-fill"></div></div>
+        </div>
+      </div>
       <div class="label">Analysis</div>
       <ul id="reasons"></ul>
-    </div>
-    <div id="safe-alt" class="safe-alt hidden">
-      <span id="safe-alt-text">Safe alternative:</span>
-      <a id="safe-alt-link" href="#" target="_blank" rel="noopener noreferrer"></a>
-    </div>
-  </div>
+      <div id="safe-alt" class="safe-alt hidden">
+        <span id="safe-alt-text">Safe alternative:</span>
+        <a id="safe-alt-link" href="#" target="_blank" rel="noopener noreferrer"></a>
+      </div>
+    </section>
 
-  <div id="feedback" class="feedback hidden">
-    <div id="fb-status" class="fb-status hidden">
-      <span id="fb-status-text"></span>
-      <button id="fb-undo" class="link-btn">Undo</button>
-    </div>
-    <button id="fb-btn" class="fb-btn"></button>
-    <div id="fb-msg" class="fb-msg"></div>
-  </div>
+    <details id="hops" class="card collapsible hidden">
+      <summary><span class="c-title">Redirect chain</span><span id="hop-count" class="chip"></span></summary>
+      <ol id="hop-list"></ol>
+    </details>
 
-  <div id="error" class="hidden">
-    No result for this page. Make sure the DeepIntel API is running at localhost:8000, then reload the page. (Only http/https pages are analyzed.)
-  </div>
+    <details id="cookies" class="card collapsible hidden">
+      <summary id="ck-summary"></summary>
+      <div class="c-body">
+        <div id="ck-stats" class="stats"></div>
+        <ul id="ck-warnings"></ul>
+        <div id="ck-domains"></div>
+      </div>
+    </details>
+
+    <section id="feedback" class="card feedback hidden">
+      <div id="fb-status" class="fb-status hidden">
+        <span id="fb-status-text"></span>
+        <button id="fb-undo" class="link-btn">Undo</button>
+      </div>
+      <button id="fb-btn" class="fb-btn"></button>
+      <div id="fb-msg" class="fb-msg"></div>
+    </section>
+  </main>
 
   <script src="popup.js"></script>
 </body>

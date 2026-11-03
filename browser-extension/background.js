@@ -1,3 +1,7 @@
+importScripts("onion.js");
+importScripts("hops.js");
+importScripts("cookies.js");
+
 const API_BASE = "http://localhost:8000";
 const API_URL = `${API_BASE}/analyze`;
 
@@ -76,6 +80,18 @@ function urlForAnalysis(url) {
 async function processTab(tabId, url) {
   if (!url || !url.startsWith("http")) return null; // skip chrome://, about:, etc.
 
+  try {
+    const host = new URL(url).hostname;
+    if (isOnionHost(host)) {
+      // Never send onion URLs anywhere
+      const result = { tor: true, url, info: onionInfo(host) };
+      chrome.action.setBadgeText({ tabId, text: "TOR" });
+      chrome.action.setBadgeBackgroundColor({ tabId, color: "#e6a817" });
+      chrome.storage.local.set({ [`result_${tabId}`]: result });
+      return result;
+    }
+  } catch {}
+
   const target = urlForAnalysis(url);
   const analysed = await analyzeUrl(target.url);
   const result = analysed && analysed.ml_probs ? { ...analysed, upgraded: target.upgraded } : analysed;
@@ -84,7 +100,10 @@ async function processTab(tabId, url) {
     chrome.storage.local.remove(`result_${tabId}`);
     return null;
   }
-  updateBadge(tabId, result);
+  // Hop analysis may finish first; don't let the final page's badge hide a risky redirect hop.
+  const hk = `hops_${tabId}`;
+  const hopWorst = worstHopRisk((await chrome.storage.session.get(hk))[hk]);
+  updateBadge(tabId, hopWorst && RISK_RANK[hopWorst] > (RISK_RANK[result.risk_level] ?? -1) ? { risk_level: hopWorst } : result);
   chrome.storage.local.set({ [`result_${tabId}`]: result });
   return result;
 }
