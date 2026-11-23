@@ -22,3 +22,17 @@ retrain_trigger.flag
 
 # Personal feedback database (local to each user)
 data/feedback.db
+
+# Local landing-page design diagnostics
+.taste-skill/
+website/.taste-skill/
+
+# Reproducible promo-video dependencies and render diagnostics
+video/node_modules/
+video/out/
+video/.cache/
+
+# Browser feasibility experiment dependencies
+browser-prototype/node_modules/
+browser-prototype/.cache/
+browser-prototype/.venv/

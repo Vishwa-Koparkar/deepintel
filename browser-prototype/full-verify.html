@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>DeepIntel browser parity check</title></head>
+<body>
+  <output id="status">Loading browser detector…</output>
+  <script src="./runtime/ort.wasm.min.js"></script>
+  <script src="./features.js"></script>
+  <script src="./engine.js"></script>
+  <script>
+    window.runFullParity = async function () {
+      await DeepIntelBrowserEngine.initialize({ assetBase: new URL("./", location.href).href });
+      const reference = await fetch("./full-reference.json").then(response => response.json());
+      const actual = await DeepIntelBrowserEngine.analyzeMany(reference.results.map(row => row.url));
+      const fields = ["prediction", "risk_level", "decided_by", "reasons", "trace", "layers", "ml_probs", "suggestion"];
+      const mismatches = [];
+      const equivalent = (left, right) => {
+        if (typeof left === "number" && typeof right === "number") return Math.abs(left - right) <= 0.000101;
+        if (Array.isArray(left) && Array.isArray(right)) return left.length === right.length && left.every((value, index) => equivalent(value, right[index]));
+        if (left && right && typeof left === "object" && typeof right === "object") {
+          const a = Object.keys(left).sort(), b = Object.keys(right).sort();
+          return JSON.stringify(a) === JSON.stringify(b) && a.every(key => equivalent(left[key], right[key]));
+        }
+        return left === right;
+      };
+      for (let index = 0; index < actual.length; index++) {
+        const expected = reference.results[index], found = actual[index];
+        for (const field of fields) {
+          if (!equivalent(found[field], expected[field])) {
+            mismatches.push({ index, url: expected.url, field });
+            if (mismatches.length === 10) break;
+          }
+        }
+        if (!equivalent(found.score, expected.score) || !equivalent(found.confidence, expected.confidence)) {
+          mismatches.push({ index, url: expected.url, field: "score/confidence" });
+        }
+        if (!equivalent(found.ml_probs, expected.ml_probs) || !equivalent(found.layers, expected.layers)) {
+          mismatches.push({ index, url: expected.url, field: "layers/ml_probs" });
+        }
+        if (mismatches.length >= 10) break;
+      }
+      const summary = { rows: actual.length, mismatches, modelBytes: DeepIntelBrowserEngine.status().metadata.modelBytes };
+      document.getElementById("status").textContent = JSON.stringify(summary);
+      return summary;
+    };
+  </script>
+</body>
+</html>

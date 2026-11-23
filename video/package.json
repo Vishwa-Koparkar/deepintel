@@ -1,0 +1,21 @@
+{
+  "name": "deepintel-product-promo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "capture": "node scripts/capture.mjs",
+    "render": "remotion render src/index.ts DeepIntelPromo ../website/assets/product/product-promo.mp4 --codec=h264 --crf=20",
+    "poster": "ffmpeg -y -ss 4.2 -i ../website/assets/product/product-promo.mp4 -frames:v 1 -update 1 -q:v 2 -vf scale=1200:675 ../website/assets/product/product-poster.jpg",
+    "still": "remotion still src/index.ts DeepIntelPromo"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.484",
+    "playwright": "1.56.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.484"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}

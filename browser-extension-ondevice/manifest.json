@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "DeepIntel On-device URL Check",
+  "version": "0.1.0",
+  "description": "Check a URL with a locally bundled DeepIntel model and threat data.",
+  "action": {
+    "default_title": "Check URL on this device",
+    "default_popup": "popup.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

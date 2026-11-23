@@ -1,0 +1,13 @@
+{
+  "runtime": "onnxruntime-web WASM",
+  "rows": 6556,
+  "featureValues": 131120,
+  "featureMismatches": 0,
+  "maxProbabilityError": 6.258487701416016e-7,
+  "labelChanges": 0,
+  "initMs": 231.89999999850988,
+  "inferenceMs": 230.19999999925494,
+  "warmSingleMedianMs": 0.09999999776482582,
+  "warmSingleP95Ms": 1,
+  "perRowBatchMs": 0.035112873703364085
+}

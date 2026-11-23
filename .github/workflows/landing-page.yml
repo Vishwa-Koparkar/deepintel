@@ -2,7 +2,7 @@ name: Deploy landing page
 on:
   push:
     branches: [main]
-    paths: ['website/**', '.github/workflows/landing-page.yml']
+    paths: ['website/**', 'dashboard.html', 'browser-prototype/**', '.github/workflows/landing-page.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,6 +31,10 @@ jobs:
           mkdir -p /tmp/deepintel-public
           cp website/index.html website/style.css website/app.js /tmp/deepintel-public/
           cp -R website/assets /tmp/deepintel-public/assets
+          cp dashboard.html /tmp/deepintel-public/dashboard.html
+          mkdir -p /tmp/deepintel-public/browser-prototype/runtime
+          cp browser-prototype/engine.js browser-prototype/features.js browser-prototype/metadata.json browser-prototype/engine-data.json browser-prototype/model.onnx /tmp/deepintel-public/browser-prototype/
+          cp browser-prototype/runtime/ort.wasm.min.js browser-prototype/runtime/ort-wasm-simd-threaded.mjs browser-prototype/runtime/ort-wasm-simd-threaded.wasm /tmp/deepintel-public/browser-prototype/runtime/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: /tmp/deepintel-public

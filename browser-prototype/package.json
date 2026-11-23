@@ -1,0 +1,8 @@
+{
+  "name": "deepintel-browser-parity-prototype",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {"serve": "python3 -m http.server 4180 --bind 127.0.0.1", "verify": "node verify.cjs"},
+  "dependencies": {"onnxruntime-web": "1.31.1"},
+  "devDependencies": {"playwright": "1.56.1"}
+}

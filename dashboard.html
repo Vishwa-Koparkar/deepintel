@@ -183,6 +183,17 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .error-box { background: #fdecea; border: 1px solid #f5c6c2; border-radius: 8px; padding: 14px 18px; color: var(--high); font-size: 14px; margin-bottom: 16px; }
+  .browser-notice { border: 1px solid #bdd3ef; background: #edf5ff; color: #254b78; border-radius: 10px; padding: 13px 16px; margin: 0 0 18px; font-size: 13px; line-height: 1.55; }
+  .trace-row { display: grid; grid-template-columns: 145px 92px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: start; }
+  .trace-row:last-child { border-bottom: 0; }
+  .trace-name { font-size: 13px; font-weight: 600; }
+  .trace-status { width: fit-content; border-radius: 20px; padding: 3px 8px; font: 10px 'JetBrains Mono', monospace; text-transform: uppercase; background: #edf1f5; color: #58687a; }
+  .trace-status.decided { background: #e3f2fd; color: #164c83; }
+  .trace-status.agrees { background: #e8f5f0; color: #0a7c5c; }
+  .trace-status.overruled { background: #fff3e0; color: #9b4d00; }
+  .trace-detail { font-size: 13px; line-height: 1.5; color: var(--muted); }
+  .drivers-note { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  @media (max-width: 620px) { .trace-row { grid-template-columns: 1fr auto; } .trace-detail { grid-column: 1 / -1; } }
 </style>
 </head>
 <body>
@@ -197,11 +208,12 @@
   </div>
   <div class="header-status">
     <div class="dot"></div>
-    <span>API: localhost:8000</span>
+    <span id="api-location">API: connecting</span>
   </div>
 </header>
 
 <main>
+  <p id="readOnlyNotice" class="browser-notice" hidden></p>
 
   <div class="input-section">
     <div class="input-label">Analyze URL</div>
@@ -245,6 +257,12 @@
       <div id="reasonsList"></div>
     </div>
 
+    <div class="section-card">
+      <div class="section-header">Decision trail</div>
+      <div id="traceList"></div>
+      <p id="driversNote" class="drivers-note" hidden></p>
+    </div>
+
     <div class="section-card" id="feedbackSection">
       <div class="section-header">Was this verdict wrong?</div>
       <div id="fbMarked" class="fb-marked" style="display:none"></div>
@@ -280,12 +298,48 @@
 </main>
 
 <script>
-// Always talk to the DeepIntel API on port 8000. Same origin when the API itself serves this page
-// (http://localhost:8000/dashboard); otherwise (opened from disk, or a preview/live-server on another port) use its address directly.
-const API = (location.protocol.startsWith("http") && location.port === "8000") ? location.origin : "http://127.0.0.1:8000";
+// Load the bundled browser engine only on the static dashboard route. The API-backed
+// /dashboard route keeps its original Python service integration.
+const USE_BROWSER_ENGINE = location.pathname.endsWith("/dashboard.html");
+if (USE_BROWSER_ENGINE) document.write('<script src="./browser-prototype/runtime/ort.wasm.min.js"><\/script><script src="./browser-prototype/features.js"><\/script><script src="./browser-prototype/engine.js"><\/script>');
+</script>
+<script>
+// The API serves /dashboard in both local and hosted deployments; standalone previews use localhost.
+const API = (location.protocol.startsWith("http") && (location.pathname === "/dashboard" || location.port === "8000")) ? location.origin : "http://127.0.0.1:8000";
+document.getElementById("api-location").textContent = USE_BROWSER_ENGINE ? "ON DEVICE · WASM" : `API: ${API}`;
 let lastUrl = "";
 let armedLabel = null;
 let history = [];
+let feedbackEnabled = false;
+
+async function configureDemo() {
+  if (USE_BROWSER_ENGINE) {
+    feedbackEnabled = false;
+    document.getElementById("readOnlyNotice").textContent = "On-device analysis · URLs stay in this browser. This static build includes the trained model and detection snapshots; feedback updates and TreeSHAP feature drivers are unavailable.";
+    document.getElementById("readOnlyNotice").hidden = false;
+    document.getElementById("feedbackSection").hidden = true;
+    document.getElementById("correctionsSection").hidden = true;
+    document.getElementById("analyzeBtn").textContent = "Analyze locally";
+    try {
+      await DeepIntelBrowserEngine.initialize({ assetBase: new URL("./browser-prototype/", location.href).href });
+      document.getElementById("api-location").textContent = `ON DEVICE · ${DeepIntelBrowserEngine.status().metadata.modelBytes.toLocaleString()} B model`;
+      return true;
+    } catch (err) {
+      showError(`Could not load the on-device model or local assets.<br><small>${esc(err.message)}</small>`);
+      return false;
+    }
+  }
+  try {
+    const response = await fetch(`${API}/demo-config`);
+    feedbackEnabled = response.ok ? (await response.json()).feedbackEnabled === true : response.status === 404;
+  } catch {
+    feedbackEnabled = false;
+  }
+  document.getElementById("readOnlyNotice").hidden = feedbackEnabled;
+  document.getElementById("feedbackSection").hidden = !feedbackEnabled;
+  document.getElementById("correctionsSection").hidden = !feedbackEnabled;
+}
+const demoReady = configureDemo();
 
 const RISK_COLORS = {
   safe:     "#0a7c5c",
@@ -308,6 +362,8 @@ const CLASS_COLORS = {
 };
 
 async function runAnalysis() {
+  const ready = await demoReady;
+  if (USE_BROWSER_ENGINE && !ready) return;
   const url = document.getElementById("urlInput").value.trim();
   if (!url) return;
   const btn = document.getElementById("analyzeBtn");
@@ -316,22 +372,26 @@ async function runAnalysis() {
   document.getElementById("errorBox").style.display = "none";
   document.getElementById("loadingBox").style.display = "block";
   try {
-    const res = await fetch(`${API}/analyze`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
-    });
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    const data = await res.json();
+    let data;
+    if (USE_BROWSER_ENGINE) data = await DeepIntelBrowserEngine.analyze(url);
+    else {
+      const res = await fetch(`${API}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      data = await res.json();
+    }
     lastUrl = url;
     renderResults(data);
     addHistory(data);
-    loadCorrections();
+    if (!USE_BROWSER_ENGINE) loadCorrections();
   } catch (err) {
-    const unreachable = err instanceof TypeError;   // fetch() itself failed: nothing is listening / blocked
+    const unreachable = err instanceof TypeError;
     showError(unreachable
-      ? `Could not reach the API at ${esc(API)}. Make sure the backend is running: <code>uvicorn api:app --reload</code><br><small>${esc(err.message)}</small>`
-      : `The API at ${esc(API)} returned an error.<br><small>${esc(err.message)}</small>`);
+      ? USE_BROWSER_ENGINE ? `Could not load the on-device model or its local assets.<br><small>${esc(err.message)}</small>` : `Could not reach the API at ${esc(API)}. Make sure the backend is running: <code>uvicorn api:app --reload</code><br><small>${esc(err.message)}</small>`
+      : USE_BROWSER_ENGINE ? `On-device analysis failed.<br><small>${esc(err.message)}</small>` : `The API at ${esc(API)} returned an error.<br><small>${esc(err.message)}</small>`);
   } finally {
     btn.disabled = false;
     document.getElementById("loadingBox").style.display = "none";
@@ -369,16 +429,27 @@ function renderResults(data) {
   if (data.suggestion) {
     suggSec.style.display = "block";
     const s = data.suggestion;
+    const safeUrl = /^https?:\/\//i.test(s.safe_url || "") ? s.safe_url : "";
     document.getElementById("suggestionContent").innerHTML = `
       <div class="suggestion-box">
-        <div class="suggestion-msg">${s.message}</div>
-        ${s.safe_url ? `<a class="suggestion-link" href="${s.safe_url}" target="_blank">Visit ${s.safe_url}</a>` : ""}
+        <div class="suggestion-msg">${esc(s.message)}</div>
+        ${safeUrl ? `<a class="suggestion-link" href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer">Visit ${esc(safeUrl)}</a>` : ""}
       </div>`;
   } else {
     suggSec.style.display = "none";
   }
 
-  renderFeedback(data);
+  document.getElementById("traceList").innerHTML = (data.trace || []).map(step => `
+    <div class="trace-row">
+      <span class="trace-name">${esc(step.title)}</span>
+      <span class="trace-status ${esc(step.status)}">${esc(step.status.replaceAll("_", " "))}</span>
+      <span class="trace-detail">${esc(step.detail)}</span>
+    </div>`).join("") || `<div class="no-reasons">No decision trace is available.</div>`;
+  const driversNote = document.getElementById("driversNote");
+  driversNote.hidden = !data.driver_status;
+  driversNote.textContent = data.driver_status || "";
+
+  if (!USE_BROWSER_ENGINE) renderFeedback(data);
   document.getElementById("results").style.display = "block";
 }
 
@@ -386,6 +457,7 @@ function renderResults(data) {
 const SCOPE_TEXT = { url: "this exact page", host: "this site", domain: "this whole domain" };
 
 function renderFeedback(data) {
+  if (!feedbackEnabled) return;
   armedLabel = null;
   document.getElementById("fbError").style.display = "none";
   const marked = document.getElementById("fbMarked");
@@ -409,6 +481,7 @@ function renderFeedback(data) {
 }
 
 function onFeedbackClick() {
+  if (!feedbackEnabled) return;
   const btn = document.getElementById("fbBtn");
   // Two steps, so a stray click can't silently mark a phishing site as safe
   if (armedLabel !== btn.dataset.label) {
@@ -427,6 +500,8 @@ function fbFail(msg) {
 }
 
 async function feedbackRequest(path, options) {
+  await demoReady;
+  if (!feedbackEnabled) throw new Error("Personal corrections are disabled in this public demo.");
   const res = await fetch(`${API}${path}`, options);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -438,6 +513,7 @@ async function feedbackRequest(path, options) {
 }
 
 async function reanalyze() {
+  if (USE_BROWSER_ENGINE) return DeepIntelBrowserEngine.analyze(lastUrl).then(renderResults);
   const res = await fetch(`${API}/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: lastUrl }) });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   renderResults(await res.json());
@@ -465,6 +541,8 @@ async function undoFeedback(id) {
 }
 
 async function loadCorrections() {
+  await demoReady;
+  if (!feedbackEnabled) return;
   const section = document.getElementById("correctionsSection");
   try {
     const { items, untrained } = await feedbackRequest("/feedback");
@@ -484,7 +562,7 @@ async function loadCorrections() {
   }
 }
 
-loadCorrections();
+if (!USE_BROWSER_ENGINE) demoReady.then(loadCorrections);
 
 function drawGauge(score, color) {
   const canvas = document.getElementById("gaugeCanvas");

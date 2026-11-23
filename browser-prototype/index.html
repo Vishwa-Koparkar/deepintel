@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f4">
+  <title>DeepIntel · On-device model proof</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="DeepIntel browser proof home">
+        <img src="./logo.png" alt="" width="36" height="36">
+        <span>DeepIntel</span>
+      </a>
+      <span class="eyebrow"><span class="status-dot" id="status-dot"></span><span id="model-status" aria-live="polite">Loading on-device model</span></span>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <p class="kicker">Browser proof · WebAssembly</p>
+        <h1 id="page-title">A URL model, running on your device.</h1>
+        <p class="intro-copy">Paste a URL to see the exported XGBoost model's class probabilities. The model and its 20 input features run in this browser tab.</p>
+      </section>
+
+      <section class="workspace" aria-label="URL model analysis">
+        <form class="input-card" id="analysis-form">
+          <label for="url-input">URL to inspect</label>
+          <p class="field-note">Use an <code>http://</code> or <code>https://</code> URL. If you omit the scheme, HTTPS is assumed.</p>
+          <div class="input-row">
+            <input id="url-input" name="url" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="4096" placeholder="https://example.com/login" aria-describedby="url-help" required>
+            <button id="analyze-button" type="submit" disabled>Analyze URL</button>
+          </div>
+          <p class="field-help" id="url-help">Maximum 4,096 characters. The URL is not fetched or sent to the API.</p>
+          <p class="error-message" id="form-error" role="alert" hidden></p>
+          <div class="model-specs" id="model-specs" hidden></div>
+        </form>
+
+        <section class="result-card" id="result-card" aria-live="polite" aria-labelledby="result-title">
+          <div class="result-heading">
+            <div>
+              <p class="kicker">Model-only result</p>
+              <h2 id="result-title">Ready when you are</h2>
+            </div>
+            <span class="result-tag">ONNX · WASM</span>
+          </div>
+          <p class="result-summary" id="result-summary">Run an analysis to compare the three probabilities from the local model.</p>
+          <div class="probabilities" id="probabilities" aria-label="Class probabilities"></div>
+          <p class="inference-time" id="inference-time" hidden></p>
+        </section>
+      </section>
+
+      <section class="parity-card" id="parity-card" hidden aria-label="Model export parity result">
+        <span class="parity-mark" aria-hidden="true">✓</span>
+        <p id="parity-copy"></p>
+      </section>
+
+      <section class="scope-card" aria-labelledby="scope-title">
+        <div class="scope-copy">
+          <p class="kicker">Scope of this proof</p>
+          <h2 id="scope-title">These probabilities are not DeepIntel's final verdict.</h2>
+          <p>This page runs the XGBoost model only. The full local detector also combines heuristics, threat intelligence, a trusted-domain allowlist, lookalike checks, and personal feedback.</p>
+        </div>
+        <ul class="omissions">
+          <li>Score fusion and threat-intelligence overrides</li>
+          <li>Allowlist and lookalike-domain checks</li>
+          <li>TreeSHAP feature contributions and decision trace</li>
+          <li>Personal corrections and feedback storage</li>
+        </ul>
+      </section>
+
+      <p class="privacy-note">The browser loads the ONNX model and metadata from this local prototype. It does not visit the URL or send it to a server.</p>
+    </main>
+  </div>
+
+  <script src="./runtime/ort.wasm.min.js"></script>
+  <script src="./features.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

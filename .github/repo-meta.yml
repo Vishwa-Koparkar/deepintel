@@ -1,0 +1,20 @@
+description: >
+  Investigate suspicious links locally with a verdict you can inspect and correct,
+  combining machine learning, heuristic rules, threat intelligence, and lookalike-domain detection.
+topics:
+  - cybersecurity
+  - security
+  - phishing
+  - malware
+  - threat-intelligence
+  - url-analysis
+  - url-classification
+  - phishing-detection
+  - machine-learning
+  - xgboost
+  - explainable-ai
+  - fastapi
+  - chrome-extension
+  - browser-extension
+  - python
+homepage: ""
