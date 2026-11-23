@@ -1,19 +1,118 @@
 # DeepIntel
 
-AI-powered URL threat detection system with a multi-layer detection engine, explainability module, SOC analyst dashboard and a browser extension.
+**Explainable URL threat detection, from machine learning to the browser.**
 
-## Features
+DeepIntel helps teams investigate suspicious links with a verdict they can inspect. It combines XGBoost, heuristic rules, threat intelligence, and lookalike-domain detection to classify URLs as **benign, phishing, or malware**, then shows the evidence behind each decision.
 
-- **Multi-Layer Detection Engine** — ML model (XGBoost) + heuristic rule scoring + threat intelligence lookup, plus lookalike/typosquat detection and a trusted-domain allowlist
-- **20 URL Features** — entropy, brand impersonation, TLD analysis, keyword detection, and more
-- **Lookalike Detection** — catches typosquats and confusable-character domains (`rnicrosoft.com`, `g00gle.com`, `google.coms`) and brands hidden in subdomains (`login.paypal.evil.com`)
-- **Explainability** — human-readable reasons naming the actual evidence in each URL, a per-layer decision trace, and the ML features that moved the score
-- **Safe Alternatives** — suggests official websites when brand impersonation is detected
-- **Personal Feedback Loop** — correct wrong verdicts from the extension or dashboard; corrections apply immediately and are learned on the next retrain
-- **Browser Extension** — Manifest V3 extension that checks pages against the local API
-- **SOC Dashboard** — URL analysis with risk gauge, confidence charts, decision trace and history
-- **Auto-Updating Pipeline** — scheduled ingestion from live threat feeds with balanced dataset growth and automatic retraining
-- **FastAPI Backend** — `/analyze` for verdicts, `/feedback` for corrections, `/dashboard` for the UI
+A FastAPI backend powers an analyst dashboard and Chrome extension. Corrections feed back into training, and a scheduled pipeline ingests new threat URLs and triggers model updates. For startup teams exploring link screening in support, moderation, or internal security workflows, DeepIntel provides a working local system to evaluate and extend.
+
+[Try it locally](#run-it-locally) · [Engineering decisions](#engineering-decisions) · [Evaluation](#evaluation) · [Code map](#project-structure)
+
+## What’s built
+
+| Capability | Implementation |
+|---|---|
+| API and browser integration | A shared detection engine behind a FastAPI endpoint, dashboard, and Manifest V3 browser extension. |
+| Data quality and feature engineering | Real browsing exposed dataset shortcuts; URL augmentation and consistent normalization address them. |
+| ML evaluation | A held-out domain split, per-class metrics, false-positive and false-negative rates, and explicit benchmark limitations. |
+| Explainable AI | Human-readable evidence, per-layer decision traces, and XGBoost feature contributions. |
+| Feedback-driven learning | SQLite-backed corrections apply immediately and enter the training split on retraining. |
+| Model lifecycle automation | Scheduled feed ingestion, retraining triggers, a validation gate, and a backup of the previous model. |
+
+The dashboard brings together a risk gauge, confidence charts, analysis history, and a decision trace. The extension checks browsing URLs against the local API and offers correction controls; detected impersonation can also produce an official-site suggestion.
+
+## Engineering decisions
+
+### Fix the data before chasing a better score
+
+An earlier benchmark reported **96.58% accuracy**, but browser testing exposed two shortcuts. Bare-domain benign examples taught the model to treat real page paths as suspicious. Inconsistent trailing slashes also became an accidental label signal.
+
+The pipeline now augments benign URLs with realistic subdomains, paths, and queries, and the analyzer normalizes URLs consistently with the dataset. Evaluation includes a trailing-slash regression check; the committed report records **zero verdict flips**. The current **92.75%** result comes from a larger, different test set and is not directly comparable to the earlier figure.
+
+Relevant code: [benign augmentation](scripts/pipeline/augment_benign.py), [feature rebuilding and domain splits](scripts/pipeline/rebuild_features.py), [system evaluation](scripts/evaluation/evaluate_system.py).
+
+### Use multiple signals and expose how they interact
+
+The model scores 20 URL features, including domain entropy, brand impersonation, TLD risk, and URL structure. Heuristics and local threat-intelligence blocklists add independent signals. A separate lookalike detector handles domains such as `rnicrosoft.com` and brands hidden in subdomains such as `login.paypal.evil.com`.
+
+The response includes the deciding layer, a decision trace, and feature contributions. This makes it possible to investigate a verdict rather than accept a label without evidence.
+
+Relevant code: [fusion engine](analyzer.py), [lookalike detection](lookalike.py), [explanations](explainer.py).
+
+### Let corrections improve the system without blindly trusting them
+
+Corrections take effect immediately and receive extra weight in the next training run. Their scope stays narrow on shared hosting platforms, and a known threat-intelligence hit cannot be marked safe. Retraining rejects a model if validation accuracy drops by more than one percentage point and keeps a backup of the previous model.
+
+Relevant code: [feedback and scope rules](feedback.py), [API validation](api.py), [retraining entry point](scripts/pipeline/retrain.py), [model validation gate](scripts/evaluation/tune_model.py).
+
+## Run it locally
+
+The project currently runs locally. Model artifacts are git-ignored, so a fresh clone needs training before URL analysis works. Run the following from the repository root.
+
+```bash
+git clone https://github.com/Vishwa-Koparkar/deepintel.git
+cd deepintel
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Initialize the label encoder on first setup, then train using the included dataset:
+
+```bash
+python - <<'PYTHON'
+import joblib
+from sklearn.preprocessing import LabelEncoder
+
+encoder = LabelEncoder().fit(["benign", "malware", "phishing"])
+joblib.dump(encoder, "models/label_encoder.pkl")
+PYTHON
+python scripts/pipeline/retrain.py
+uvicorn api:app --reload
+```
+
+- **Dashboard:** open [localhost:8000/dashboard](http://localhost:8000/dashboard). Serve it through the API so the feedback controls work.
+- **API docs:** open [localhost:8000/docs](http://localhost:8000/docs).
+- **Chrome extension:** open `chrome://extensions`, enable *Developer mode*, choose *Load unpacked*, and select `browser-extension/`. Keep the backend running on `localhost:8000`.
+
+Try the API without visiting the submitted URL:
+
+```bash
+curl -X POST http://localhost:8000/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com"}'
+```
+
+The response includes `prediction`, `risk_level`, `score`, `reasons`, `drivers`, `decided_by`, `trace`, and an optional safe-site `suggestion`. The core analyzer works on URL text and local data; it does not fetch the submitted page's content.
+
+## Evaluation
+
+The [committed evaluation report](models/system_eval.json) measures the full detection pipeline with the allowlist and personal feedback disabled. This avoids crediting the system for trusted domains drawn from the same benign source as the test data.
+
+| Metric | Result |
+|---|---|
+| Accuracy | 92.75% |
+| False-positive rate | 4.94% |
+| False-negative rate | 8.64% |
+| Test set | 6,555 URLs |
+| Split | 70/15/15 by registered domain |
+| Trailing-slash verdict flips | 0 |
+
+| Class | Precision | Recall | Test URLs |
+|---|---|---|---|
+| Benign | 95.5% | 95.1% | 4,309 |
+| Malware | 97.8% | 90.5% | 798 |
+| Phishing | 82.6% | 87.2% | 1,448 |
+
+**What still needs work:** phishing is the weakest class. The test set includes 204 benign URLs flagged as phishing and 179 phishing URLs classified as benign. Benign examples are synthetically augmented Majestic domains, so these results do not establish accuracy on live startup traffic. The project has not been deployed or benchmarked under production load.
+
+The API is configured for local development, with permissive analysis CORS and origin checks on feedback. A shared deployment would need authentication, tighter access controls, and operational validation.
+
+To regenerate the report after training:
+
+```bash
+python scripts/evaluation/evaluate_system.py
+```
 
 ## Architecture
 
@@ -33,58 +132,6 @@ adjust the verdict, in that order. A threat-intel blocklist hit can only be over
 correction, never by a "safe" one. The API response includes `decided_by` and a `trace` showing, for every layer,
 whether it decided the verdict, agreed with it, or was overruled.
 
-## Performance
-
-Measured on the full pipeline (ML + heuristics + threat intel + lookalike) with the allowlist and personal
-feedback switched off, so the figures reflect detection on unknown sites.
-
-| Metric | Value |
-|---|---|
-| Accuracy | 92.75% |
-| False Positive Rate | 4.94% |
-| False Negative Rate | 8.64% |
-| Benign Recall | 95.1% |
-| Malware Recall | 90.5% |
-| Phishing Recall | 87.2% |
-| Test Set Size | 6,555 URLs (held out, registered-domain-level split) |
-
-Per-class results on the test set:
-
-| Class | Precision | Recall | Support |
-|---|---|---|---|
-| Benign | 0.955 | 0.951 | 4,309 |
-| Malware | 0.978 | 0.905 | 798 |
-| Phishing | 0.826 | 0.872 | 1,448 |
-
-Phishing is the weakest class; most errors are benign URLs flagged as phishing (204) and phishing flagged as benign (179).
-
-### Why the accuracy is lower than in earlier versions
-
-An earlier version reported **96.58%** accuracy (5,379 URLs). That figure came from a benchmark whose benign side was
-bare domains (`https://example.com`), and it did not survive real browsing, for two reasons found by testing in the browser:
-
-1. **"Has a path means not benign."** Trained on bare domains only, the model classified almost every real page
-   (YouTube, Google, Wikipedia) as phishing. Benign training URLs are now augmented with realistic `www.`, subdomain,
-   path and query variants (`scripts/pipeline/augment_benign.py`, two variants per domain).
-2. **"Trailing slash means safe."** Benign URLs carried a trailing `/` that threat URLs never had, so the model
-   learned the slash as a shortcut and waved phishing sites through. The analyzer now normalises URLs the same way
-   the dataset does, the augmentation no longer creates the shortcut, and `evaluate_system.py` fails loudly if a
-   trailing slash ever changes a verdict (`slash_flips` is reported in `models/system_eval.json`).
-
-The current benchmark is harder and closer to real traffic, so the numbers are lower. They are **not directly
-comparable** to the old ones: the test set is larger (6,555 vs 5,379) and has a different class mix.
-
-### Caveats
-
-- The benchmark's benign side is synthetic (augmented Majestic domains), so these numbers are a floor-style sanity
-  check, not a prediction of real-world accuracy.
-- The allowlist (top-ranked domains with no threat history) lowers the benign false-positive rate on real browsing
-  to near zero, but that is not reported as accuracy because the allowlist is built from the same benign source as
-  the test set.
-- Lookalike/typosquat domains are caught by `lookalike.py`, not the ML model, which cannot detect them because they
-  look like ordinary short domains.
-- The system runs against a local API and has not been deployed.
-
 ## Fixing false positives and false negatives (personal feedback)
 
 Wrong verdicts can be corrected from the extension popup ("Wrong? This site is safe / phishing", with a
@@ -100,48 +147,16 @@ database (`data/feedback.db`, git-ignored) and work in two stages:
    when new threat-feed URLs or 10+ unlearned corrections have accumulated. The previous model is kept as
    `models/best_model.prev.pkl`, and a retrain that lowers validation accuracy by more than 1 point is rejected.
 
-The feedback endpoints (`/feedback`) answer only the extension and the dashboard served by the API, not other
-websites in your browser.
+The feedback endpoints (`/feedback`) check browser origins and accept Chrome-extension and localhost origins.
+These checks support local use; they are not a substitute for authentication on a shared service.
 
-## Dataset
+## Data and training
 
-Built from 4 verified, actively-maintained threat intelligence sources:
+The dataset combines **Majestic Million** benign domains, **OpenPhish** and **PhishTank** phishing URLs, and **URLhaus** malware URLs. Benign domains are augmented with realistic browsing variants. Train, validation, and test sets are separated by registered domain; user corrections enter the training split only.
 
-- **Majestic Million** — benign ground truth, ranked by referring subnets
-- **OpenPhish** — researcher-verified live phishing feed
-- **PhishTank (Cisco Talos)** — community + machine-verified phishing feed
-- **URLhaus (abuse.ch)** — malware URL feed, coordinated with Europol/FBI
+A third-party Kaggle dataset was removed during development after inconsistent labels were found to hurt model performance. The current pipeline uses the sources above.
 
-Benign URLs are augmented as described above. Train/val/test are split 70/15/15 by **registered domain** so the same
-domain never appears in more than one split. User corrections are added to the train split only.
-
-> A merged third-party dataset (Kaggle) was evaluated during development but removed
-> from the final pipeline after diagnosis showed inconsistent labeling was degrading
-> model performance (85.4% → 96.6% accuracy on the benchmark of that time, before the
-> benign-augmentation change above). The final dataset uses only verified sources.
-
-## Setup
-
-```bash
-git clone https://github.com/YOUR_USERNAME/deepintel.git
-cd deepintel
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-## Usage
-
-**Run the backend:**
-```bash
-uvicorn api:app --reload
-```
-
-Open `http://localhost:8000/dashboard` to use the SOC dashboard. Open it from the API rather than as a local file:
-the feedback controls only work from the API's own origin.
-
-**Install the browser extension:** open `chrome://extensions`, enable *Developer mode*, choose *Load unpacked* and
-select the `browser-extension/` folder. The backend must be running on `localhost:8000`.
+### Pipeline commands
 
 **Check URLs from the command line (no visiting, URL text only):**
 ```bash
